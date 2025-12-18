@@ -165,7 +165,11 @@ function getRawSPS() {
 
 function clickMushroom(event) {
     if (event) event.preventDefault();
-    if (frenzyCooldown <= 0 && !isFrenzyActive) { isFrenzyActive = true; frenzyTimer = FRENZY_MAX; }
+    if (frenzyCooldown <= 0 && !isFrenzyActive) { 
+        isFrenzyActive = true; 
+        frenzyTimer = FRENZY_MAX; 
+        saveGame(false); // Save state immediately when frenzy starts
+    }
     let g = 1 * getTotalMult(); spores += g; gainExp(g * 0.5);
     spawnSporeParticles(event); showFloatingText(event, "+" + format(g));
 }
@@ -218,7 +222,7 @@ function ascend() {
 }
 
 function mainLoop() {
-    if (isFrenzyActive) { frenzyTimer -= 0.1; if (frenzyTimer <= 0) { isFrenzyActive = false; frenzyCooldown = FRENZY_CD; } }
+    if (isFrenzyActive) { frenzyTimer -= 0.1; if (frenzyTimer <= 0) { isFrenzyActive = false; frenzyCooldown = FRENZY_CD; saveGame(false); } }
     else if (frenzyCooldown > 0) { frenzyCooldown = Math.max(0, frenzyCooldown - 0.1); }
     let s = getRawSPS(); spores += (s / 10); gainExp(s / 50); updateUI(s);
     document.getElementById('dateTimeDisplay').textContent = new Date().toLocaleString();
@@ -275,16 +279,7 @@ function purchasePaypalBoost() {
         if (confirm("Confirming will open PayPal. Multiplier and Cooldown will be set immediately.")) {
             premiumBoostAdd += 20; 
             lastPaypalClick = now; 
-            
-            // Critical forced save
-            const currentData = { 
-                spores, mushrooms, ascensionTimes, level, exp, expNext, pName, premiumBoostAdd, lastPaypalClick, 
-                frenzyTimer, frenzyCooldown, isFrenzyActive, 
-                upgradeQtys: Object.keys(upgrades).reduce((a, k) => ({...a, [k]: upgrades[k].qty}), {}), 
-                lastSave: now 
-            };
-            localStorage.setItem("shroom_idle_final", JSON.stringify(currentData));
-            
+            saveGame(false);
             window.open('https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=mrliamc90@gmail.com&item_name=ShroomBoost&amount=1.69&currency_code=GBP', '_blank');
         }
     }
@@ -317,6 +312,8 @@ function initGame() {
         pName = saved.pName || "";
         premiumBoostAdd = Number(saved.premiumBoostAdd) || 0; 
         lastPaypalClick = Number(saved.lastPaypalClick) || 0;
+        
+        // Load Frenzy States
         frenzyTimer = Number(saved.frenzyTimer) || 0;
         frenzyCooldown = Number(saved.frenzyCooldown) || 0;
         isFrenzyActive = !!saved.isFrenzyActive;
@@ -326,9 +323,14 @@ function initGame() {
         let now = Date.now();
         let elapsed = (now - (saved.lastSave || now)) / 1000;
 
+        // NEW: Process Frenzy Cooldown and Active Timers based on real time passed
         if (isFrenzyActive) {
             frenzyTimer -= elapsed;
-            if (frenzyTimer <= 0) { isFrenzyActive = false; frenzyCooldown = Math.max(0, FRENZY_CD + frenzyTimer); }
+            if (frenzyTimer <= 0) { 
+                isFrenzyActive = false; 
+                // Any excess time spent past the frenzy duration subtracts from the new cooldown
+                frenzyCooldown = Math.max(0, FRENZY_CD + frenzyTimer); 
+            }
         } else if (frenzyCooldown > 0) {
             frenzyCooldown = Math.max(0, frenzyCooldown - elapsed);
         }
