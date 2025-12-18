@@ -126,9 +126,9 @@
 
     <div class="info-section">
         <h3 style="color:#ff00ff;">How to Play Shrooms Bloom</h3>
-        <p>Welcome to the fungal frontier! In <strong>Shrooms Bloom Idle</strong>, your goal is to cultivate the ultimate mushroom colony.</p>
+        <p>Welcome to the fungal frontier! In <strong>Shrooms Bloom Idle</strong>, your goal is to cultivate the ultimate mushroom colony. Tap the giant mushroom to generate Spores, the currency of the forest.</p>
         <h3 style="color:#00ffff;">Privacy Policy</h3>
-        <p>This website uses Local Storage to save progress. We use the PayPal SDK and Google AdSense for ads.</p>
+        <p>We value your privacy. This website uses <strong>Local Storage</strong> to save your game progress on your own device. We use the <strong>PayPal SDK</strong> to securely process premium purchases.</p>
     </div>
 </div>
 
@@ -156,7 +156,7 @@ let upgrades = {
 };
 
 function format(n) {
-    if (n === undefined || n < 0) return "0";
+    if (!n || n < 0) return "0";
     if (n < 1000) return Math.floor(n).toLocaleString();
     const abbrevs = ["k", "M", "B", "T", "Qa", "Qi"];
     let tier = Math.floor(Math.log10(n) / 3);
@@ -178,9 +178,7 @@ function clickMushroom(event) {
 
 function gainExp(amt) { 
     exp += amt; 
-    while (exp >= expNext) { 
-        exp -= expNext; level++; expNext = Math.floor(expNext * 2.5); 
-    } 
+    while (exp >= expNext) { exp -= expNext; level++; expNext = Math.floor(expNext * 2.5); } 
 }
 
 function getAffordableCount(u) {
@@ -188,7 +186,6 @@ function getAffordableCount(u) {
     while (true) {
         let cost = u.base * Math.pow(u.growth, tempQty);
         if (tempSpores >= cost) { tempSpores -= cost; tempQty++; count++; } else break;
-        if (count > 1000) break; // Prevention
     }
     return count;
 }
@@ -206,17 +203,16 @@ function buyUpgrade(id, isMax = false) {
     updateUI();
 }
 
-function getMushroomAffordable() {
+function getMushroomAffordableCount() {
     let count = 0, tempSpores = spores, tempMush = mushrooms;
     while(tempSpores >= (3000 * Math.pow(1.2, tempMush))) {
         tempSpores -= (3000 * Math.pow(1.2, tempMush)); tempMush++; count++;
-        if (count > 1000) break;
     }
     return count;
 }
 
 function buyMushroom(isMax = false) {
-    let count = getMushroomAffordable();
+    let count = getMushroomAffordableCount();
     if(count > 0) {
         let iterations = isMax ? count : 1;
         for(let i=0; i<iterations; i++) {
@@ -227,11 +223,12 @@ function buyMushroom(isMax = false) {
     updateUI();
 }
 
-function getAscendAffordable() {
+function getAscendAffordableCount() {
     let count = 0, tempMush = mushrooms, tempAsc = ascensionTimes;
     while(tempMush >= (50 * Math.pow(1.08, tempAsc))) {
-        tempMush -= (50 * Math.pow(1.08, tempAsc)); tempAsc++; count++;
-        if (count > 1000) break;
+        tempMush = 0; // Ascension resets mushrooms to 0 in this game logic
+        tempAsc++; count++;
+        break; // Game logic only allows 1 ascension at a time currently
     }
     return count;
 }
@@ -239,8 +236,7 @@ function getAscendAffordable() {
 function ascend(isMax = false) {
     let aCost = 50 * Math.pow(1.08, ascensionTimes);
     if (mushrooms >= aCost) {
-        let count = isMax ? getAscendAffordable() : 1;
-        ascensionTimes += count;
+        ascensionTimes += 1;
         spores = 0; mushrooms = 0;
         for (let k in upgrades) upgrades[k].qty = 0;
         saveGame(true); updateUI();
@@ -267,23 +263,21 @@ function updateUI() {
         tag.textContent = "+" + count; tag.style.display = count > 0 ? "block" : "none";
     }
 
-    // Mushroom Button Logic
     let mCost = 3000 * Math.pow(1.2, mushrooms);
-    let mCount = getMushroomAffordable();
+    let mCount = getMushroomAffordableCount();
     document.getElementById('buyMushroomBtn').innerHTML = `Buy Mushroom<br>${format(mCost)} Spores`;
     document.getElementById('buyMushroomBtn').disabled = spores < mCost;
     document.getElementById('max-btn-mushrooms').disabled = mCount === 0;
-    document.getElementById('tag-mushrooms').textContent = "+" + mCount;
-    document.getElementById('tag-mushrooms').style.display = mCount > 0 ? "block" : "none";
+    let mTag = document.getElementById('tag-mushrooms');
+    mTag.textContent = "+" + mCount; mTag.style.display = mCount > 0 ? "block" : "none";
 
-    // Ascend Button Logic
     let aCost = 50 * Math.pow(1.08, ascensionTimes);
-    let aCount = getAscendAffordable();
+    let aCount = mushrooms >= aCost ? 1 : 0;
     document.getElementById('ascendBtn').innerHTML = `Ascend<br>${format(aCost)} Mush`;
     document.getElementById('ascendBtn').disabled = mushrooms < aCost;
     document.getElementById('max-btn-ascend').disabled = aCount === 0;
-    document.getElementById('tag-ascend').textContent = "+" + aCount;
-    document.getElementById('tag-ascend').style.display = aCount > 0 ? "block" : "none";
+    let aTag = document.getElementById('tag-ascend');
+    aTag.textContent = "+" + aCount; aTag.style.display = aCount > 0 ? "block" : "none";
 
     const fS = document.getElementById('frenzyStatus'), fF = document.getElementById('frenzyFill');
     if (isFrenzyActive) { fS.textContent = `🔥 FRENZY: ${frenzyTimer.toFixed(1)}s`; fF.style.width = (frenzyTimer/15*100) + "%"; }
@@ -307,7 +301,9 @@ function initPayPal() {
             return actions.order.capture().then(order => {
                 if (order.status === "COMPLETED") {
                     premiumBoostAdd += 20;
-                    saveGame(true); updateUI(); alert("BOOST ACTIVATED!");
+                    saveGame(true);
+                    updateUI();
+                    alert("BOOST ACTIVATED!");
                 }
             });
         }
@@ -409,19 +405,8 @@ function confirmUsername() {
 }
 
 function closeOfflineModal() { document.getElementById('offlineModal').style.display = 'none'; }
-
-function hardReset() { 
-    if (confirm("Erase all progress and reset?")) { 
-        let boostToKeep = premiumBoostAdd;
-        localStorage.clear(); 
-        // Re-inject premium boost after clearing
-        if (boostToKeep > 0) {
-            premiumBoostAdd = boostToKeep;
-            saveGame(false);
-        }
-        location.reload(); 
-    } 
-}
+function hardReset() { if (confirm("Erase all progress and reset?")) { localStorage.clear(); location.reload(); } }
 </script>
 </body>
 </html>
+
