@@ -107,10 +107,10 @@
         <button onclick="hardReset()" style="background:#500; color:#fff; min-width:100px;">🚨 Reset</button>
     </div>
 
-    <div class="card" style="border-color: #00ffff; margin-top: 20px; margin-bottom: 40px;">
+    <div class="card" style="border-color: #00ffff; margin-top: 20px; margin-bottom: 50px;">
         <p style="margin:0 0 10px 0; font-weight:bold; color:#00ffff; letter-spacing: 1px;">LEADERBOARD</p>
         <div id="leaderboardList">
-            <div style="font-size: 0.8em; opacity: 0.6; padding: 10px;">Updating rankings...</div>
+            <div style="font-size: 0.8em; opacity: 0.6; padding: 10px;">Syncing global shroomers...</div>
         </div>
     </div>
 </div>
@@ -118,6 +118,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
+// SUPABASE CREDENTIALS
 const SB_URL = "https://hcwrifqlabkwpltfwopr.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhjd3JpZnFsYWJrd3BsdGZ3b3ByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwNDA5MzEsImV4cCI6MjA4MTYxNjkzMX0.9hNsnAkCqJk3fn9W87HUe52qdzcFl04Sybivo_8e7vM";
 const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
@@ -135,6 +136,7 @@ let upgrades = {
     u5: { name: "Void Mycelium", base: 150000, rate: 2200, qty: 0, growth: 1.15 }
 };
 
+// FIXED LEADERBOARD SYNC
 async function syncToLeaderboard() {
     if (!pName || pName.trim() === "") return;
     try {
@@ -145,22 +147,34 @@ async function syncToLeaderboard() {
             ascensions: Math.floor(ascensionTimes) 
         }, { onConflict: 'username' });
         
-        if (!error) loadLeaderboard();
-    } catch (e) { console.warn("Sync failed"); }
+        if (!error) {
+            loadLeaderboard();
+        } else {
+            console.error("DB Error:", error.message);
+        }
+    } catch (e) { console.error("Network Error during sync"); }
 }
 
 async function loadLeaderboard() {
     try {
-        const { data, error } = await supabaseClient.from('leaderboard').select('*').order('spores', { ascending: false }).limit(10);
+        const { data, error } = await supabaseClient.from('leaderboard')
+            .select('*')
+            .order('spores', { ascending: false })
+            .limit(10);
+            
         if (data && !error) {
             let html = `<div class="lb-row lb-header"><span>#</span><span>Player</span><span>Spores (Lvl)</span></div>`;
             data.forEach((p, i) => {
                 const isMe = p.username === pName ? 'style="color:#00ff00; font-weight:bold;"' : '';
-                html += `<div class="lb-row" ${isMe}><span>${i+1}</span><span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.username}</span><span>${format(p.spores)} (${p.level})</span></div>`;
+                html += `<div class="lb-row" ${isMe}>
+                    <span>${i+1}</span>
+                    <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${p.username}</span>
+                    <span>${format(p.spores)} (${p.level})</span>
+                </div>`;
             });
             document.getElementById('leaderboardList').innerHTML = html;
         }
-    } catch(e) { }
+    } catch(e) { console.error("Leaderboard load failed"); }
 }
 
 function format(n) {
@@ -289,7 +303,7 @@ function saveGame(show) {
     const d = { spores, mushrooms, ascensionTimes, level, exp, expNext, pName, premiumBoostAdd, lastPaypalClick, upgradeQtys: Object.keys(upgrades).reduce((a, k) => ({...a, [k]: upgrades[k].qty}), {}), lastSave: Date.now() };
     localStorage.setItem("shroom_idle_final", JSON.stringify(d));
     
-    // SYNC ON EVERY SAVE (Auto or Manual)
+    // SYNC ON EVERY SAVE AS REQUESTED
     syncToLeaderboard();
     
     if(show) { const s = document.getElementById('saveStatus'); s.style.opacity = "1"; setTimeout(() => s.style.opacity = "0", 2000); }
@@ -321,7 +335,7 @@ function initGame() {
     else { document.getElementById('usernameOverlay').style.display = 'none'; document.getElementById('displayUsername').textContent = "Shroomer: " + pName; loadLeaderboard(); }
     
     setInterval(mainLoop, 100); 
-    setInterval(() => saveGame(true), 15000); // Auto-save every 15s
+    setInterval(() => saveGame(true), 15000); 
     updateUI();
 }
 
