@@ -134,7 +134,6 @@ const SB_URL = "https://bumylhsjkxdtnerntjbq.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1bXlsaHNqa3hkdG5lcm50amJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwNTI1NjQsImV4cCI6MjA4MTYyODU2NH0.E--B7G7U9GJyQJTcPde1sZeljA-Th-siCEPfmLKe3j4";
 const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
 
-// PAYPAL_COOLDOWN_TIME set to 10 minutes (600,000 ms)
 const FRENZY_MAX = 15, FRENZY_CD = 1800, OFFLINE_LIMIT = 43200, PAYPAL_COOLDOWN_TIME = 600000, EPSILON = 1e-9; 
 
 let spores = 0, mushrooms = 0, ascensionTimes = 0, level = 1, exp = 0, expNext = 100;
@@ -235,7 +234,8 @@ function buyMushroom() {
 
 function ascend() {
     let max = getMaxAffordable(50, ascensionTimes, mushrooms, 1.08);
-    if (max > 0 && confirm("Ascend? Resets progress for permanent boost.")) {
+    // Removed the confirm pop-up here
+    if (max > 0) {
         mushrooms -= getSumCost(50, ascensionTimes, 1.08, max); ascensionTimes += max;
         spores = 0; level = 1; exp = 0; expNext = 100; for (let k in upgrades) upgrades[k].qty = 0;
         saveGame(true); updateUI();
@@ -278,7 +278,6 @@ function updateUI(rate = null) {
         if (b) { b.disabled = m <= 0; b.innerHTML = `Buy Max +${m}<br>${u.name}<br>${format(u.base*Math.pow(u.growth, u.qty))}<br><small>Qty: ${u.qty}</small>`; }
     }
 
-    // LIVE PAYPAL COOLDOWN UI
     const payBtn = document.getElementById('paypalButton');
     let timeSinceLast = Date.now() - lastPaypalClick;
     if (timeSinceLast < PAYPAL_COOLDOWN_TIME) {
