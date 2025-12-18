@@ -118,9 +118,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-// SUPABASE CREDENTIALS
-const SB_URL = "https://hcwrifqlabkwpltfwopr.supabase.co";
-const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhjd3JpZnFsYWJrd3BsdGZ3b3ByIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwNDA5MzEsImV4cCI6MjA4MTYxNjkzMX0.9hNsnAkCqJk3fn9W87HUe52qdzcFl04Sybivo_8e7vM";
+// NEW SUPABASE CREDENTIALS
+const SB_URL = "https://bumylhsjkxdtnerntjbq.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1bXlsaHNqa3hkdG5lcm50amJxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwNTI1NjQsImV4cCI6MjA4MTYyODU2NH0.E--B7G7U9GJyQJTcPde1sZeljA-Th-siCEPfmLKe3j4";
 const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
 
 const FRENZY_MAX = 15, FRENZY_CD = 1800, OFFLINE_LIMIT = 43200, PAYPAL_COOLDOWN_TIME = 300000, EPSILON = 1e-9; 
@@ -136,7 +136,6 @@ let upgrades = {
     u5: { name: "Void Mycelium", base: 150000, rate: 2200, qty: 0, growth: 1.15 }
 };
 
-// FIXED LEADERBOARD SYNC
 async function syncToLeaderboard() {
     if (!pName || pName.trim() === "") return;
     try {
@@ -302,10 +301,7 @@ function purchasePaypalBoost() {
 function saveGame(show) {
     const d = { spores, mushrooms, ascensionTimes, level, exp, expNext, pName, premiumBoostAdd, lastPaypalClick, upgradeQtys: Object.keys(upgrades).reduce((a, k) => ({...a, [k]: upgrades[k].qty}), {}), lastSave: Date.now() };
     localStorage.setItem("shroom_idle_final", JSON.stringify(d));
-    
-    // SYNC ON EVERY SAVE AS REQUESTED
     syncToLeaderboard();
-    
     if(show) { const s = document.getElementById('saveStatus'); s.style.opacity = "1"; setTimeout(() => s.style.opacity = "0", 2000); }
 }
 
